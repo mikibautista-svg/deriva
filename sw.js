@@ -1,5 +1,8 @@
-var CACHE_NAME = "deriva-v2";
-var ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
+var CACHE_NAME = "deriva-v3";
+var ASSETS = [
+  "./", "./index.html", "./manifest.json", "./icon.svg",
+  "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"
+];
 
 self.addEventListener("install", function(event){
   event.waitUntil(
