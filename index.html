@@ -9,6 +9,10 @@
 <meta name="theme-color" content="#050b14">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deriva">
 <style>
   :root{
     --abyss-1: #050b14;
@@ -111,6 +115,10 @@
     flex-direction: column;
     justify-content: space-between;
     padding: clamp(14px, 3vw, 28px);
+    padding-top: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-left, 0px));
+    padding-right: calc(clamp(14px, 3vw, 28px) + env(safe-area-inset-right, 0px));
     font-family: "Cascadia Code", "SF Mono", ui-monospace, Consolas, monospace;
   }
 
@@ -245,7 +253,7 @@
 
   .hud-controls{
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
     justify-content: flex-end;
   }
@@ -255,6 +263,7 @@
     border: none;
     cursor: pointer;
     pointer-events: auto;
+    touch-action: manipulation;
   }
 
   .reset-btn{
@@ -262,7 +271,11 @@
     color: var(--ink-dim);
     border: 1px solid var(--glass-edge);
     border-radius: 999px;
-    padding: 8px 16px;
+    padding: 11px 18px;
+    min-height: 44px;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
     font-size: 11px;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -290,12 +303,21 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(24px + env(safe-area-inset-left, 0px));
+    padding-right: calc(24px + env(safe-area-inset-right, 0px));
     transition: opacity 0.7s ease, visibility 0.7s;
   }
   .curtain.hidden{
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+  }
+
+  @media (max-height: 700px){
+    .curtain{ padding-top: 96px; padding-bottom: 96px; }
+    .panel{ max-height: 72vh; }
   }
 
   .panel{
@@ -399,7 +421,9 @@
     letter-spacing: 0.06em;
     border: 1px solid var(--glass-edge);
     border-radius: 999px;
-    padding: 7px 16px;
+    padding: 11px 18px;
+    min-height: 44px;
+    box-sizing: border-box;
     margin-top: 12px;
     display: inline-flex;
     align-items: center;
@@ -1039,11 +1063,12 @@
     flashEl.classList.add("on");
   }
 
-  function hitTest(x, y){
+  function hitTest(x, y, pad){
+    pad = pad || 10;
     for (var i = motes.length - 1; i >= 0; i--){
       var m = motes[i];
       var dx = m.x - x, dy = m.y - y;
-      if (dx * dx + dy * dy <= (m.r + 10) * (m.r + 10)){
+      if (dx * dx + dy * dy <= (m.r + pad) * (m.r + pad)){
         addBurst(m.x, m.y, m.color, false);
         registerPop(m.value);
         motes.splice(i, 1);
@@ -1053,7 +1078,7 @@
     for (var j = creatures.length - 1; j >= 0; j--){
       var c = creatures[j];
       var dx2 = c.x - x, dy2 = c.y - y;
-      if (dx2 * dx2 + dy2 * dy2 <= (c.r + 14) * (c.r + 14)){
+      if (dx2 * dx2 + dy2 * dy2 <= (c.r + pad + 4) * (c.r + pad + 4)){
         if (c.type === "hole"){
           triggerBlackHole(c.x, c.y);
         } else {
@@ -1077,7 +1102,8 @@
   canvas.addEventListener("pointerdown", function(e){
     if (gameState !== "playing") return;
     var pos = pointerPos(e);
-    hitTest(pos.x, pos.y);
+    var pad = (e.pointerType === "touch") ? 22 : 10;
+    hitTest(pos.x, pos.y, pad);
   });
 
   canvas.addEventListener("pointermove", function(e){
