@@ -392,6 +392,41 @@
   }
   .lb-toggle:hover{ color: var(--ink); }
 
+  .share-btn{
+    background: none;
+    color: var(--ink-dim);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--glass-edge);
+    border-radius: 999px;
+    padding: 7px 16px;
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .share-btn:hover{ color: var(--ink); border-color: var(--cyan); }
+
+  .share-sheet .panel{ max-width: 380px; text-align: center; }
+  .share-sheet h1{ font-size: 24px; margin: 0 0 4px; }
+  .share-grid{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .share-grid .reset-btn{ width: 100%; padding: 12px 10px; }
+  .share-note{
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    color: var(--ink-dim);
+    opacity: 0.75;
+    line-height: 1.5;
+    margin: 14px 0 0;
+    text-align: left;
+  }
+
   .result-row{
     display: flex;
     justify-content: space-between;
@@ -519,7 +554,8 @@
     <p class="sub">un jardín de bioluminiscencia</p>
     <p class="desc">Bajo la superficie, el plancton enciende su propia luz al ser tocado. Son 20 niveles de 25 segundos, cada uno con su propia puntuación: la corriente se acelera en cada nivel y las estrellas fugaces cruzan cada vez más rápido. Cuidado con el <b style="color:var(--void); font-style: normal;">agujero negro</b> — si lo tocas, pierdes toda la luz del nivel en curso.</p>
     <button class="start-btn" id="startBtn">Bajar a la corriente</button>
-    <div>
+    <div style="text-align:center;">
+      <button class="share-btn" id="shareGameBtn" aria-label="Compartir el juego">↗ compartir el juego</button>
       <button class="lb-toggle" id="lbToggleStart">ver mejores puntuaciones</button>
     </div>
     <div class="lb-table" id="lbWrapStart" hidden></div>
@@ -538,6 +574,9 @@
       <div class="ad-copy" id="adCopy">Anzuelos Luminosos S.A. — pesca sostenible desde 1998.</div>
     </div>
     <button class="continue-btn" id="skipBtn">Continuar ahora</button>
+    <div>
+      <button class="share-btn" id="shareLevelBtn" aria-label="Compartir la puntuación de este nivel">↗ compartir esta puntuación</button>
+    </div>
     <p class="sub" id="interCountdown" style="margin-top: 12px; font-size: 12px;">siguiente nivel en 4s</p>
   </div>
 </div>
@@ -549,6 +588,25 @@
     <div class="result-row"><span>luz acumulada del recorrido</span><span id="endScore">0</span></div>
     <div class="lb-table" id="lbWrapEnd"></div>
     <button class="start-btn" id="playAgainBtn" style="margin-top: 18px;">Jugar de nuevo</button>
+    <div>
+      <button class="share-btn" id="shareEndBtn" aria-label="Compartir mi recorrido">↗ compartir mi recorrido</button>
+    </div>
+  </div>
+</div>
+
+<div class="curtain hidden share-sheet" id="shareSheet">
+  <div class="panel">
+    <h1>Compartir</h1>
+    <p class="sub" id="shareSheetSub" style="margin: 0 0 4px;"></p>
+    <div class="share-grid">
+      <button class="reset-btn" data-ch="whatsapp">WhatsApp</button>
+      <button class="reset-btn" data-ch="facebook">Facebook</button>
+      <button class="reset-btn" data-ch="twitter">X / Twitter</button>
+      <button class="reset-btn" data-ch="telegram">Telegram</button>
+      <button class="reset-btn" data-ch="copy" style="grid-column: 1 / -1;">Copiar enlace y texto</button>
+    </div>
+    <p class="share-note">Instagram y TikTok no dejan compartir enlaces directamente desde una web: en el móvil, usa el botón "Compartir" del sistema (no este menú) y ahí sí aparecerán si las tienes instaladas.</p>
+    <button class="lb-toggle" id="shareSheetClose">cerrar</button>
   </div>
 </div>
 
@@ -643,10 +701,17 @@
   var lbToggleStart = document.getElementById("lbToggleStart");
   var lbWrapStart = document.getElementById("lbWrapStart");
   var lbWrapEnd = document.getElementById("lbWrapEnd");
+  var shareGameBtn = document.getElementById("shareGameBtn");
+  var shareLevelBtn = document.getElementById("shareLevelBtn");
+  var shareEndBtn = document.getElementById("shareEndBtn");
+  var shareSheet = document.getElementById("shareSheet");
+  var shareSheetSub = document.getElementById("shareSheetSub");
+  var shareSheetClose = document.getElementById("shareSheetClose");
 
   var TOTAL_LEVELS = 20;
   var LEVEL_DURATION = 25;
   var STORAGE_KEY = "deriva_leaderboard_v1";
+  var GAME_URL = "https://mikibautista-svg.github.io/deriva/";
 
   var AD_LINES = [
     "Anzuelos Luminosos S.A. — pesca sostenible desde 1998.",
@@ -696,6 +761,55 @@
     container.innerHTML =
       "<table><thead><tr><th>nivel</th><th>tu partida</th><th>mejor histórico</th></tr></thead><tbody>" + rows + "</tbody></table>";
   }
+
+  var pendingShare = { text: "", url: GAME_URL };
+  var lastLevelShare = { level: 0, score: 0 };
+
+  function openShareMenu(text, url){
+    pendingShare.text = text;
+    pendingShare.url = url || GAME_URL;
+    shareSheetSub.textContent = text;
+    shareSheet.classList.remove("hidden");
+  }
+
+  function shareContent(text, url){
+    var shareUrl = url || GAME_URL;
+    if (navigator.share){
+      navigator.share({ title: "Deriva", text: text, url: shareUrl }).catch(function(err){
+        if (!err || err.name !== "AbortError") openShareMenu(text, shareUrl);
+      });
+    } else {
+      openShareMenu(text, shareUrl);
+    }
+  }
+
+  shareSheetClose.addEventListener("click", function(){
+    shareSheet.classList.add("hidden");
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll("#shareSheet [data-ch]"), function(btn){
+    btn.addEventListener("click", function(){
+      var ch = btn.getAttribute("data-ch");
+      var text = pendingShare.text;
+      var url = pendingShare.url;
+      var full = text + " " + url;
+      if (ch === "whatsapp"){
+        window.open("https://wa.me/?text=" + encodeURIComponent(full), "_blank", "noopener");
+      } else if (ch === "facebook"){
+        window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url) + "&quote=" + encodeURIComponent(text), "_blank", "noopener");
+      } else if (ch === "twitter"){
+        window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url), "_blank", "noopener");
+      } else if (ch === "telegram"){
+        window.open("https://t.me/share/url?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text), "_blank", "noopener");
+      } else if (ch === "copy"){
+        var restore = btn.textContent;
+        var done = function(){ btn.textContent = "¡copiado!"; setTimeout(function(){ btn.textContent = restore; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(full).then(done).catch(function(){});
+        }
+      }
+    });
+  });
 
   var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -1048,6 +1162,8 @@
     var finishedScore = Math.floor(score);
     var improved = recordLevel(finishedLevel, finishedScore);
     totalScore += finishedScore;
+    lastLevelShare.level = finishedLevel;
+    lastLevelShare.score = finishedScore;
 
     interTitle.textContent = "Nivel " + finishedLevel + " completado";
     interSub.textContent = improved ? "¡nuevo mejor histórico para este nivel!" : "preparando la siguiente corriente…";
@@ -1145,6 +1261,18 @@
   startBtn.addEventListener("click", function(){
     seedMotes();
     startLevel();
+  });
+
+  shareGameBtn.addEventListener("click", function(){
+    shareContent("Estoy jugando a Deriva, un jardín de bioluminiscencia. Pruébalo:");
+  });
+
+  shareLevelBtn.addEventListener("click", function(){
+    shareContent("Conseguí " + lastLevelShare.score.toLocaleString("es-ES") + " de luz en el nivel " + lastLevelShare.level + " de Deriva. ¿Puedes superarlo?");
+  });
+
+  shareEndBtn.addEventListener("click", function(){
+    shareContent("Completé los 20 niveles de Deriva con " + Math.floor(totalScore).toLocaleString("es-ES") + " de luz total. ¿Puedes superarlo?");
   });
 
   var last = performance.now();
