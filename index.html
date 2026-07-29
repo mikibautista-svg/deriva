@@ -237,6 +237,7 @@
     align-items: flex-end;
     gap: 16px;
   }
+  .hud.pre-game .hud-bottom{ display: none; }
 
   .hint{
     font-family: system-ui, sans-serif;
@@ -544,7 +545,7 @@
   </div>
 </div>
 
-<div class="hud">
+<div class="hud pre-game" id="hud">
   <div class="hud-top">
     <div class="wordmark">deriva</div>
     <div class="level-block">
@@ -692,6 +693,7 @@
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  var hudEl = document.getElementById("hud");
   var canvas = document.getElementById("stage");
   var stageWrap = document.getElementById("stage-wrap");
   var ctx = canvas.getContext("2d");
@@ -1140,6 +1142,7 @@
     resetScoreState();
     seedMotes();
     stageWrap.style.filter = "";
+    hudEl.classList.add("pre-game");
     pauseOverlay.classList.remove("on");
     pauseBtn.textContent = "pausar";
     interCurtain.classList.add("hidden");
@@ -1165,6 +1168,7 @@
     buildLevelEvents();
     scheduleNextCreature();
     gameState = "playing";
+    hudEl.classList.remove("pre-game");
     pauseOverlay.classList.remove("on");
     pauseBtn.textContent = "pausar";
     interCurtain.classList.add("hidden");
