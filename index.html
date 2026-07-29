@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Deriva — un jardín de bioluminiscencia. Enciende motas de plancton a la deriva en 20 niveles, evita el agujero negro y compite por la mejor puntuación.">
 <title>Deriva — jardín bioluminiscente</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050b14">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <style>
   :root{
     --abyss-1: #050b14;
@@ -608,6 +612,7 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var canvas = document.getElementById("stage");
+  var stageWrap = document.getElementById("stage-wrap");
   var ctx = canvas.getContext("2d");
   var startCurtain = document.getElementById("startCurtain");
   var interCurtain = document.getElementById("interCurtain");
@@ -705,9 +710,11 @@
   resize();
 
   var PALETTE = [
-    { color: "45,226,201", value: 10 },
-    { color: "255,62,200", value: 12 },
-    { color: "198,242,78", value: 14 }
+    { color: "45,226,201", value: 10, unlock: 1 },
+    { color: "255,62,200", value: 12, unlock: 1 },
+    { color: "198,242,78", value: 14, unlock: 1 },
+    { color: "255,205,70", value: 16, unlock: 2 },
+    { color: "130,190,255", value: 20, unlock: 9 }
   ];
 
   var motes = [];
@@ -744,57 +751,91 @@
     };
   }
 
+  // Cada nivel activa (de forma acumulativa) al menos un elemento nuevo
+  // respecto al anterior: un tono de fondo distinto siempre, y a partir de
+  // ciertos niveles un ingrediente concreto (estela, motas gigantes,
+  // estrella dorada, sucesos dobles, etc).
+  function traits(lv){
+    return {
+      hueShift: Math.min((lv - 1) * 4, 55),
+      satPct: Math.min(100 + (lv - 1) * 3, 150),
+      trail: lv >= 3,
+      giant: lv >= 6,
+      golden: lv >= 5,
+      doubleStar: lv >= 7,
+      comboBonus: lv >= 8 ? 1.15 : 1,
+      doubleHoleMid: lv >= 10,
+      igniteSparks: lv >= 11,
+      doubleGlow: lv >= 12,
+      spiral: lv >= 13,
+      extraCurrent: lv >= 14,
+      doubleHoleEnd: lv >= 15,
+      flicker: lv >= 16,
+      midBurst: lv >= 17,
+      longTrail: lv >= 18,
+      secondCurrentLayer: lv >= 19,
+      finalRain: lv >= 20
+    };
+  }
+
   function buildLevelEvents(){
     levelEvents = [
       { at: 4, type: "star", done: false },
-      { at: LEVEL_DURATION / 2, type: "hole", done: false },
+      { at: LEVEL_DURATION / 2, type: "hole_mid", done: false },
       { at: Math.min(16, LEVEL_DURATION - 6), type: "star", done: false },
-      { at: LEVEL_DURATION - 5, type: "hole", done: false }
+      { at: LEVEL_DURATION - 5, type: "hole_end", done: false }
     ];
+  }
+
+  function pickMote(){
+    var pool = PALETTE.filter(function(p){ return level >= p.unlock; });
+    return pool[(Math.random() * pool.length) | 0];
+  }
+
+  function makeMote(){
+    var d = difficulty(level);
+    var tr = traits(level);
+    var p = pickMote();
+    var isSpiral = tr.spiral && Math.random() < 0.22;
+    var isGiant = tr.giant && Math.random() < 0.12;
+    return {
+      r: rand(3.2, 7) * (isGiant ? 1.8 : 1),
+      speed: rand(14, 30) * d.moteSpeedMult * (reduceMotion ? 0.5 : 1),
+      wanderPhase: rand(0, Math.PI * 2),
+      wanderAmp: rand(10, 34) * (isSpiral ? 2.2 : 1),
+      wanderFreq: rand(0.4, 0.9),
+      pulsePhase: rand(0, Math.PI * 2),
+      color: p.color,
+      value: p.value * (isGiant ? 1.8 : 1),
+      spiral: isSpiral,
+      flicker: tr.flicker,
+      trailOn: tr.trail,
+      trail: []
+    };
   }
 
   function spawnMote(){
     if (motes.length > 46) return;
-    var d = difficulty(level);
-    var p = PALETTE[(Math.random() * PALETTE.length) | 0];
-    motes.push({
-      x: rand(0, W),
-      y: H + rand(10, 60),
-      r: rand(3.2, 7),
-      speed: rand(14, 30) * d.moteSpeedMult * (reduceMotion ? 0.5 : 1),
-      wanderPhase: rand(0, Math.PI * 2),
-      wanderAmp: rand(10, 34),
-      wanderFreq: rand(0.4, 0.9),
-      pulsePhase: rand(0, Math.PI * 2),
-      color: p.color,
-      value: p.value
-    });
+    var m = makeMote();
+    m.x = rand(0, W);
+    m.y = H + rand(10, 60);
+    motes.push(m);
   }
 
   function seedMotes(){
     for (var i = 0; i < 22; i++){
-      var d = difficulty(level);
-      var p0 = PALETTE[(Math.random() * PALETTE.length) | 0];
-      motes.push({
-        x: rand(0, W), y: rand(0, H),
-        r: rand(3.2, 7),
-        speed: rand(14, 30) * d.moteSpeedMult * (reduceMotion ? 0.5 : 1),
-        wanderPhase: rand(0, Math.PI * 2),
-        wanderAmp: rand(10, 34),
-        wanderFreq: rand(0.4, 0.9),
-        pulsePhase: rand(0, Math.PI * 2),
-        color: p0.color,
-        value: p0.value
-      });
+      var m = makeMote();
+      m.x = rand(0, W);
+      m.y = rand(0, H);
+      motes.push(m);
     }
   }
 
-  function spawnCreature(type){
+  function makeCreature(isHole, fromLeft, isGolden){
     var d = difficulty(level);
-    var fromLeft = Math.random() < 0.5;
-    var isHole = type === "hole";
-    creatures.push({
+    return {
       type: isHole ? "hole" : "star",
+      golden: isGolden,
       x: fromLeft ? -60 : W + 60,
       y: rand(H * 0.15, H * 0.7),
       dir: fromLeft ? 1 : -1,
@@ -803,10 +844,29 @@
       bob: rand(0, Math.PI * 2),
       spin: rand(0, Math.PI * 2),
       spinSpeed: rand(1.2, 2.2),
-      value: isHole ? 0 : 80,
+      value: isHole ? 0 : (isGolden ? 240 : 80),
       tentacles: 5,
       trail: []
-    });
+    };
+  }
+
+  function spawnCreature(type){
+    var tr = traits(level);
+    var isHole = type === "hole_mid" || type === "hole_end";
+    var fromLeft = Math.random() < 0.5;
+    var isGolden = !isHole && tr.golden && Math.random() < 0.15;
+
+    creatures.push(makeCreature(isHole, fromLeft, isGolden));
+
+    if (!isHole && tr.doubleStar && Math.random() < 0.5){
+      creatures.push(makeCreature(false, !fromLeft, false));
+    }
+    if (type === "hole_mid" && tr.doubleHoleMid){
+      creatures.push(makeCreature(true, !fromLeft, false));
+    }
+    if (type === "hole_end" && tr.doubleHoleEnd){
+      creatures.push(makeCreature(true, !fromLeft, false));
+    }
   }
 
   function scheduleNextCreature(){
@@ -816,7 +876,8 @@
 
   function addBurst(x, y, colorRgb, big){
     bursts.push({ x: x, y: y, maxR: big ? 90 : 44, color: colorRgb, age: 0, dur: big ? 0.65 : 0.42 });
-    var n = big ? 22 : 10;
+    var extra = (!big && traits(level).igniteSparks) ? 6 : 0;
+    var n = (big ? 22 : 10) + extra;
     for (var i = 0; i < n; i++){
       var ang = rand(0, Math.PI * 2);
       var sp = rand(40, big ? 220 : 130);
@@ -824,7 +885,7 @@
         x: x, y: y,
         vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
         r: rand(1, big ? 3.2 : 2.2),
-        color: big ? PALETTE[(Math.random() * PALETTE.length) | 0].color : colorRgb,
+        color: big ? pickMote().color : colorRgb,
         age: 0, life: rand(0.5, 0.9)
       });
     }
@@ -840,7 +901,7 @@
     } else {
       comboCount = 1;
     }
-    comboTimer = COMBO_WINDOW;
+    comboTimer = COMBO_WINDOW * traits(level).comboBonus;
     var mult = Math.min(1 + Math.floor(comboCount / 3) * 0.5, 4);
     score += value * mult;
     updateScoreDisplay();
@@ -939,6 +1000,7 @@
     clearEntities();
     resetScoreState();
     seedMotes();
+    stageWrap.style.filter = "";
     pauseOverlay.classList.remove("on");
     pauseBtn.textContent = "pausar";
     interCurtain.classList.add("hidden");
@@ -969,6 +1031,14 @@
     interCurtain.classList.add("hidden");
     endCurtain.classList.add("hidden");
     startCurtain.classList.add("hidden");
+
+    var tr = traits(level);
+    stageWrap.style.filter = "hue-rotate(" + tr.hueShift + "deg) saturate(" + tr.satPct + "%)";
+    if (tr.finalRain){
+      spawnCreature("star");
+      spawnCreature("star");
+      spawnCreature("star");
+    }
   }
 
   var interTimer = null;
@@ -1080,12 +1150,14 @@
   var last = performance.now();
 
   function drawBackgroundCurrents(t){
+    var tr = traits(level);
     ctx.save();
     ctx.globalAlpha = 0.06;
     ctx.strokeStyle = "rgba(217,242,236,1)";
     ctx.lineWidth = 1;
-    for (var i = 0; i < 5; i++){
-      var yBase = (H / 6) * (i + 1);
+    var lines = tr.extraCurrent ? 6 : 5;
+    for (var i = 0; i < lines; i++){
+      var yBase = (H / (lines + 1)) * (i + 1);
       ctx.beginPath();
       for (var x = 0; x <= W; x += 20){
         var y = yBase + Math.sin(x * 0.006 + t * 0.00015 + i) * 26;
@@ -1093,11 +1165,36 @@
       }
       ctx.stroke();
     }
+    if (tr.secondCurrentLayer){
+      ctx.strokeStyle = "rgba(255,62,200,1)";
+      ctx.globalAlpha = 0.045;
+      for (var j = 0; j < lines; j++){
+        var yBase2 = (H / (lines + 1)) * (j + 1) + 40;
+        ctx.beginPath();
+        for (var x2 = 0; x2 <= W; x2 += 20){
+          var y2 = yBase2 + Math.cos(x2 * 0.005 - t * 0.0002 + j) * 22;
+          if (x2 === 0) ctx.moveTo(x2, y2); else ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
   function drawMote(m, t){
-    var pulse = 1 + Math.sin(t * 0.003 + m.pulsePhase) * 0.18;
+    if (m.trailOn){
+      for (var i = 0; i < m.trail.length; i++){
+        var tp = m.trail[i];
+        var ta = (i / m.trail.length) * 0.3;
+        ctx.fillStyle = "rgba(" + m.color + "," + ta + ")";
+        ctx.beginPath();
+        ctx.arc(tp.x, tp.y, m.r * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    var flickerWobble = m.flicker ? Math.sin(t * 0.02 + m.pulsePhase * 3) * 0.06 : 0;
+    var pulse = 1 + Math.sin(t * 0.003 + m.pulsePhase) * 0.18 + flickerWobble;
     var r = m.r * pulse;
     var g = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r * 5);
     g.addColorStop(0, "rgba(" + m.color + ",0.9)");
@@ -1115,10 +1212,11 @@
   }
 
   function drawStar(c, t){
+    var glow = c.golden ? "255,215,80" : "255,154,90";
     for (var i = 0; i < c.trail.length; i++){
       var tp = c.trail[i];
       var a = (i / c.trail.length) * 0.35;
-      ctx.fillStyle = "rgba(255,180,120," + a + ")";
+      ctx.fillStyle = "rgba(" + glow + "," + a + ")";
       ctx.beginPath();
       ctx.arc(tp.x, tp.y, c.r * 0.5 * (i / c.trail.length), 0, Math.PI * 2);
       ctx.fill();
@@ -1126,21 +1224,22 @@
 
     var pulse = 1 + Math.sin(t * 0.004 + c.bob) * 0.12;
     var r = c.r * pulse;
-    var g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r * 4.2);
-    g.addColorStop(0, "rgba(255,154,90,0.85)");
-    g.addColorStop(0.4, "rgba(255,154,90,0.28)");
-    g.addColorStop(1, "rgba(255,154,90,0)");
+    var glowMult = traits(level).doubleGlow ? 5.5 : 4.2;
+    var g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r * glowMult);
+    g.addColorStop(0, "rgba(" + glow + ",0.85)");
+    g.addColorStop(0.4, "rgba(" + glow + ",0.28)");
+    g.addColorStop(1, "rgba(" + glow + ",0)");
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.arc(c.x, c.y, r * 4.2, 0, Math.PI * 2);
+    ctx.arc(c.x, c.y, r * glowMult, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "rgba(255,200,160,0.95)";
+    ctx.fillStyle = c.golden ? "rgba(255,235,180,0.95)" : "rgba(255,200,160,0.95)";
     ctx.beginPath();
     ctx.ellipse(c.x, c.y, r, r * 0.72, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(255,154,90,0.55)";
+    ctx.strokeStyle = "rgba(" + glow + ",0.55)";
     ctx.lineWidth = 1.6;
     var sway = reduceMotion ? 0 : Math.sin(t * 0.004 + c.bob) * 10;
     for (var i2 = 0; i2 < c.tentacles; i2++){
@@ -1204,6 +1303,9 @@
         if (!levelEvent.done && levelElapsed >= levelEvent.at){
           levelEvent.done = true;
           spawnCreature(levelEvent.type);
+          if (levelEvent.type === "hole_mid" && traits(level).midBurst){
+            for (var mb = 0; mb < 6; mb++) spawnMote();
+          }
         }
       }
 
@@ -1233,6 +1335,9 @@
       var m = motes[i];
       m.y -= m.speed * dt;
       m.x += Math.sin(t * 0.001 * m.wanderFreq + m.wanderPhase) * m.wanderAmp * dt;
+      if (m.spiral){
+        m.y += Math.cos(t * 0.0016 * m.wanderFreq + m.wanderPhase) * 14 * dt;
+      }
 
       if (!reduceMotion && pointer.active){
         var dx = m.x - pointer.x, dy = m.y - pointer.y;
@@ -1242,6 +1347,11 @@
           m.x += pointer.vx * f * 0.4;
           m.y += pointer.vy * f * 0.4;
         }
+      }
+
+      if (m.trailOn){
+        m.trail.push({ x: m.x, y: m.y });
+        if (m.trail.length > 8) m.trail.shift();
       }
 
       if (m.y < -30) { motes.splice(i, 1); continue; }
@@ -1255,7 +1365,8 @@
       c.spin += c.spinSpeed * dt;
       if (c.type === "star"){
         c.trail.push({ x: c.x, y: c.y });
-        if (c.trail.length > 10) c.trail.shift();
+        var maxTrail = traits(level).longTrail ? 18 : 10;
+        if (c.trail.length > maxTrail) c.trail.shift();
       }
       if (c.x < -100 || c.x > W + 100){ creatures.splice(j, 1); continue; }
       if (c.type === "hole") drawHole(c, t); else drawStar(c, t);
@@ -1294,6 +1405,13 @@
   seedMotes();
   requestAnimationFrame(frame);
 })();
+</script>
+<script>
+  if ("serviceWorker" in navigator){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
 </script>
 </body>
 </html>

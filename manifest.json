@@ -1,0 +1,15 @@
+{
+  "name": "Deriva — jardín bioluminiscente",
+  "short_name": "Deriva",
+  "description": "Enciende motas de plancton a la deriva en 20 niveles, evita el agujero negro y compite por la mejor puntuación.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050b14",
+  "theme_color": "#050b14",
+  "lang": "es",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
