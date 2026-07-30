@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Deriva — un jardín de bioluminiscencia. Enciende motas de plancton a la deriva en 20 niveles, evita el agujero negro y compite por la mejor puntuación.">
+<meta name="description" content="Deriva — un jardín de bioluminiscencia. Enciende motas de plancton a la deriva en 10 niveles, evita la criatura de las profundidades y compite por la mejor puntuación.">
 <title>Deriva — jardín bioluminiscente</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050b14">
@@ -17,14 +17,14 @@
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Deriva — jardín bioluminiscente">
-<meta property="og:description" content="Enciende motas de plancton a la deriva en 20 niveles, evita el agujero negro y compite por la mejor puntuación.">
+<meta property="og:description" content="Enciende motas de plancton a la deriva en 10 niveles, evita la criatura de las profundidades y compite por la mejor puntuación.">
 <meta property="og:url" content="https://mikibautista-svg.github.io/deriva/">
 <meta property="og:image" content="https://mikibautista-svg.github.io/deriva/og-image.png">
 <meta property="og:image:width" content="882">
 <meta property="og:image:height" content="980">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Deriva — jardín bioluminiscente">
-<meta name="twitter:description" content="Enciende motas de plancton a la deriva en 20 niveles, evita el agujero negro y compite por la mejor puntuación.">
+<meta name="twitter:description" content="Enciende motas de plancton a la deriva en 10 niveles, evita la criatura de las profundidades y compite por la mejor puntuación.">
 <meta name="twitter:image" content="https://mikibautista-svg.github.io/deriva/og-image.png">
 <style>
   :root{
@@ -563,7 +563,7 @@
     <div class="wordmark">deriva</div>
     <div class="level-block">
       <div class="level-label">nivel</div>
-      <div class="level-value" id="levelValue">1 / 20</div>
+      <div class="level-value" id="levelValue">1 / 10</div>
       <div class="timer-bar"><span id="timerFill"></span></div>
     </div>
     <div class="readout">
@@ -576,7 +576,7 @@
     </div>
   </div>
   <div class="hud-bottom">
-    <p class="hint">toca las motas para encenderlas. las estrellas fugaces valen más. <b>evita el agujero negro:</b> te quita la luz de este nivel.</p>
+    <p class="hint">toca las motas para encenderlas. las criaturas fugaces valen más. <b>evita la criatura de las profundidades:</b> te quita la luz de este nivel.</p>
     <div class="hud-controls">
       <button class="reset-btn" id="pauseBtn" aria-label="Pausar la partida">pausar</button>
       <button class="reset-btn warn" id="exitBtn" aria-label="Salir al inicio">salir</button>
@@ -589,7 +589,7 @@
   <div class="panel">
     <h1>Deriva</h1>
     <p class="sub">un jardín de bioluminiscencia</p>
-    <p class="desc">Bajo la superficie, el plancton enciende su propia luz al ser tocado. Son 20 niveles de 25 segundos, cada uno con su propia puntuación: la corriente se acelera en cada nivel y las estrellas fugaces cruzan cada vez más rápido. Cuidado con el <b style="color:var(--void); font-style: normal;">agujero negro</b> — si lo tocas, pierdes toda la luz del nivel en curso.</p>
+    <p class="desc">Bajo la superficie, el plancton enciende su propia luz al ser tocado. Son 10 niveles de 45 segundos, cada uno con su propia puntuación: la corriente se acelera en cada nivel y las criaturas fugaces cruzan cada vez más rápido. Cuidado con la <b style="color:var(--void); font-style: normal;">criatura de las profundidades</b> — si la tocas, pierdes toda la luz del nivel en curso. Si superas tu récord de un nivel, una criatura mística aparecerá al terminarlo.</p>
     <button class="start-btn" id="startBtn">Bajar a la corriente</button>
     <div style="text-align:center;">
       <button class="share-btn" id="shareGameBtn" aria-label="Compartir el juego">↗ compartir el juego</button>
@@ -614,7 +614,7 @@
     <div>
       <button class="share-btn" id="shareLevelBtn" aria-label="Compartir la puntuación de este nivel">↗ compartir esta puntuación</button>
     </div>
-    <p class="sub" id="interCountdown" style="margin-top: 12px; font-size: 12px;">siguiente nivel en 4s</p>
+    <p class="sub" id="interCountdown" style="margin-top: 12px; font-size: 12px;">siguiente nivel en 15s</p>
   </div>
 </div>
 
@@ -746,9 +746,10 @@
   var shareSheetSub = document.getElementById("shareSheetSub");
   var shareSheetClose = document.getElementById("shareSheetClose");
 
-  var TOTAL_LEVELS = 20;
-  var LEVEL_DURATION = 25;
-  var STORAGE_KEY = "deriva_leaderboard_v1";
+  var TOTAL_LEVELS = 10;
+  var LEVEL_DURATION = 45;
+  var INTER_DURATION = 15;
+  var STORAGE_KEY = "deriva_leaderboard_v2";
   var GAME_URL = "https://mikibautista-svg.github.io/deriva/";
 
   var AD_LINES = [
@@ -866,7 +867,7 @@
     { color: "255,62,200", value: 12, unlock: 1 },
     { color: "198,242,78", value: 14, unlock: 1 },
     { color: "255,205,70", value: 16, unlock: 2 },
-    { color: "130,190,255", value: 20, unlock: 9 }
+    { color: "130,190,255", value: 20, unlock: 5 }
   ];
 
   var motes = [];
@@ -894,47 +895,49 @@
   function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
 
   function difficulty(lv){
+    var f = (lv - 1) / (TOTAL_LEVELS - 1);
     return {
-      moteSpeedMult: 1 + (lv - 1) * 0.10,
-      moteSpawnMult: 1 + (lv - 1) * 0.05,
-      creatureSpeedMult: 1 + (lv - 1) * 0.32,
-      creatureIntervalMin: clamp(9 - (lv - 1) * 0.32, 2.6, 9),
-      creatureIntervalMax: clamp(15 - (lv - 1) * 0.5, 4, 15)
+      moteSpeedMult: 1 + f * 1.9,
+      moteSpawnMult: 1 + f * 0.95,
+      creatureSpeedMult: 1 + f * 6.08,
+      creatureIntervalMin: clamp(9 - f * 6.08, 2.6, 9),
+      creatureIntervalMax: clamp(15 - f * 9.5, 4, 15)
     };
   }
 
   // Cada nivel activa (de forma acumulativa) al menos un elemento nuevo
   // respecto al anterior: un tono de fondo distinto siempre, y a partir de
   // ciertos niveles un ingrediente concreto (estela, motas gigantes,
-  // estrella dorada, sucesos dobles, etc).
+  // criatura dorada, sucesos dobles, etc). El nivel final concentra todo.
   function traits(lv){
+    var f = (lv - 1) / (TOTAL_LEVELS - 1);
     return {
-      hueShift: Math.min((lv - 1) * 4, 55),
-      satPct: Math.min(100 + (lv - 1) * 3, 150),
-      trail: lv >= 3,
-      giant: lv >= 6,
-      golden: lv >= 5,
-      doubleStar: lv >= 7,
-      comboBonus: lv >= 8 ? 1.15 : 1,
-      doubleHoleMid: lv >= 10,
-      igniteSparks: lv >= 11,
-      doubleGlow: lv >= 12,
-      spiral: lv >= 13,
-      extraCurrent: lv >= 14,
-      doubleHoleEnd: lv >= 15,
-      flicker: lv >= 16,
-      midBurst: lv >= 17,
-      longTrail: lv >= 18,
-      secondCurrentLayer: lv >= 19,
-      finalRain: lv >= 20
+      hueShift: f * 55,
+      satPct: 100 + f * 50,
+      trail: lv >= 2,
+      giant: lv >= 3,
+      golden: lv >= 3,
+      doubleStar: lv >= 4,
+      comboBonus: lv >= 4 ? 1.15 : 1,
+      doubleHoleMid: lv >= 5,
+      igniteSparks: lv >= 6,
+      doubleGlow: lv >= 6,
+      spiral: lv >= 7,
+      extraCurrent: lv >= 7,
+      doubleHoleEnd: lv >= 8,
+      flicker: lv >= 8,
+      midBurst: lv >= 9,
+      longTrail: lv >= 9,
+      secondCurrentLayer: lv >= 10,
+      finalRain: lv >= 10
     };
   }
 
   function buildLevelEvents(){
     levelEvents = [
-      { at: 4, type: "star", done: false },
+      { at: 6, type: "star", done: false },
       { at: LEVEL_DURATION / 2, type: "hole_mid", done: false },
-      { at: Math.min(16, LEVEL_DURATION - 6), type: "star", done: false },
+      { at: LEVEL_DURATION - 13, type: "star", done: false },
       { at: LEVEL_DURATION - 5, type: "hole_end", done: false }
     ];
   }
@@ -1024,6 +1027,29 @@
   function scheduleNextCreature(){
     var d = difficulty(level);
     creatureTimer = rand(d.creatureIntervalMin, d.creatureIntervalMax);
+  }
+
+  // Aparece solo cuando se bate el récord propio de un nivel, durante el
+  // intermedio hacia el siguiente. Crece con el nivel superado; la del
+  // nivel final es la más grande y la única con doble aura y estela larga.
+  function spawnMystic(lv){
+    var isFinal = lv >= TOTAL_LEVELS;
+    var fromLeft = Math.random() < 0.5;
+    creatures.push({
+      type: "mystic",
+      isFinal: isFinal,
+      x: fromLeft ? -80 : W + 80,
+      y: rand(H * 0.28, H * 0.58),
+      dir: fromLeft ? 1 : -1,
+      r: 20 + lv * 7,
+      speed: rand(24, 32),
+      bob: rand(0, Math.PI * 2),
+      spin: rand(0, Math.PI * 2),
+      spinSpeed: rand(0.3, 0.5),
+      huePhase: rand(0, 1),
+      tentacles: isFinal ? 9 : 6,
+      trail: []
+    });
   }
 
   function addBurst(x, y, colorRgb, big){
@@ -1208,7 +1234,7 @@
     lastLevelShare.score = finishedScore;
 
     interTitle.textContent = "Nivel " + finishedLevel + " completado";
-    interSub.textContent = improved ? "¡nuevo mejor histórico para este nivel!" : "preparando la siguiente corriente…";
+    interSub.textContent = improved ? "¡nuevo récord! una criatura mística aparece en la corriente…" : "preparando la siguiente corriente…";
     interScore.textContent = finishedScore.toLocaleString("es-ES");
     interLevelNum.textContent = finishedLevel;
     interBest.textContent = bestForLevel(finishedLevel).toLocaleString("es-ES");
@@ -1216,9 +1242,15 @@
     adCopy.textContent = AD_LINES[(Math.random() * AD_LINES.length) | 0];
     interCurtain.classList.remove("hidden");
 
+    if (improved) spawnMystic(finishedLevel);
+
+    // La ventana entre niveles (INTER_DURATION) le da tiempo real al hueco
+    // de anuncio a mostrarse; el temporizador de aquí es solo el reloj de
+    // seguridad del propio juego para no quedarse bloqueado si el anuncio
+    // no llega a cargar.
     showInterstitialAd(finishedLevel, function(){});
 
-    var remaining = 4;
+    var remaining = INTER_DURATION;
     interCountdown.textContent = "siguiente nivel en " + remaining + "s";
     clearInterval(interTimer);
     interTimer = setInterval(function(){
@@ -1314,7 +1346,7 @@
   });
 
   shareEndBtn.addEventListener("click", function(){
-    shareContent("Completé los 20 niveles de Deriva con " + Math.floor(totalScore).toLocaleString("es-ES") + " de luz total. ¿Puedes superarlo?");
+    shareContent("Completé los " + TOTAL_LEVELS + " niveles de Deriva con " + Math.floor(totalScore).toLocaleString("es-ES") + " de luz total. ¿Puedes superarlo?");
   });
 
   var last = performance.now();
@@ -1448,6 +1480,71 @@
     ctx.fill();
   }
 
+  function mysticColor(t, phase){
+    var stops = [[45,226,201],[255,62,200],[198,242,78]];
+    var cycle = ((t * 0.00035 + phase) % 1 + 1) % 1;
+    var idx = cycle * stops.length;
+    var i0 = Math.floor(idx) % stops.length;
+    var i1 = (i0 + 1) % stops.length;
+    var f = idx - Math.floor(idx);
+    var a = stops[i0], b = stops[i1];
+    return Math.round(a[0] + (b[0] - a[0]) * f) + "," +
+      Math.round(a[1] + (b[1] - a[1]) * f) + "," +
+      Math.round(a[2] + (b[2] - a[2]) * f);
+  }
+
+  function drawMystic(c, t){
+    var glow = mysticColor(t, c.huePhase);
+    var auraMult = c.isFinal ? 6.5 : 5;
+
+    for (var i = 0; i < c.trail.length; i++){
+      var tp = c.trail[i];
+      var a2 = (i / c.trail.length) * 0.3;
+      ctx.fillStyle = "rgba(" + mysticColor(t - (c.trail.length - i) * 40, c.huePhase) + "," + a2 + ")";
+      ctx.beginPath();
+      ctx.arc(tp.x, tp.y, c.r * 0.4 * (i / c.trail.length), 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (c.isFinal){
+      var glow2 = mysticColor(t * 0.7, c.huePhase + 0.4);
+      var gOuter = ctx.createRadialGradient(c.x, c.y, c.r * auraMult * 0.5, c.x, c.y, c.r * auraMult * 1.5);
+      gOuter.addColorStop(0, "rgba(" + glow2 + ",0.16)");
+      gOuter.addColorStop(1, "rgba(" + glow2 + ",0)");
+      ctx.fillStyle = gOuter;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r * auraMult * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    var pulse = 1 + Math.sin(t * 0.003 + c.bob) * 0.14;
+    var r = c.r * pulse;
+    var g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r * auraMult);
+    g.addColorStop(0, "rgba(" + glow + ",0.9)");
+    g.addColorStop(0.35, "rgba(" + glow + ",0.35)");
+    g.addColorStop(1, "rgba(" + glow + ",0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r * auraMult, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
+    ctx.beginPath();
+    ctx.ellipse(c.x, c.y, r, r * 0.72, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(" + glow + ",0.6)";
+    ctx.lineWidth = 2;
+    var sway = reduceMotion ? 0 : Math.sin(t * 0.003 + c.bob) * 16;
+    for (var i2 = 0; i2 < c.tentacles; i2++){
+      var tx = c.x + (i2 - (c.tentacles - 1) / 2) * (r * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(tx, c.y + r * 0.5);
+      ctx.quadraticCurveTo(tx + sway, c.y + r * 1.8, tx + sway * 1.6, c.y + r * 3);
+      ctx.stroke();
+    }
+  }
+
   function frame(t){
     requestAnimationFrame(frame);
     var dt = Math.min((t - last) / 1000, 0.05);
@@ -1538,8 +1635,14 @@
         var maxTrail = traits(level).longTrail ? 18 : 10;
         if (c.trail.length > maxTrail) c.trail.shift();
       }
+      if (c.type === "mystic"){
+        c.trail.push({ x: c.x, y: c.y });
+        if (c.trail.length > (c.isFinal ? 24 : 14)) c.trail.shift();
+      }
       if (c.x < -100 || c.x > W + 100){ creatures.splice(j, 1); continue; }
-      if (c.type === "hole") drawHole(c, t); else drawStar(c, t);
+      if (c.type === "hole") drawHole(c, t);
+      else if (c.type === "mystic") drawMystic(c, t);
+      else drawStar(c, t);
     }
 
     for (var k = bursts.length - 1; k >= 0; k--){
