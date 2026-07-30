@@ -886,6 +886,7 @@
   var stateBeforePause = "start";
   var levelTimeLeft = LEVEL_DURATION;
   var levelElapsed = 0;
+  var midBurstDone = false;
   var creatureTimer = Infinity;
   var levelEvents = [];
 
@@ -919,12 +920,10 @@
       golden: lv >= 3,
       doubleStar: lv >= 4,
       comboBonus: lv >= 4 ? 1.15 : 1,
-      doubleHoleMid: lv >= 5,
       igniteSparks: lv >= 6,
       doubleGlow: lv >= 6,
       spiral: lv >= 7,
       extraCurrent: lv >= 7,
-      doubleHoleEnd: lv >= 8,
       flicker: lv >= 8,
       midBurst: lv >= 9,
       longTrail: lv >= 9,
@@ -933,13 +932,22 @@
     };
   }
 
+  var HOLE_COUNT = 9;
+
   function buildLevelEvents(){
     levelEvents = [
       { at: 6, type: "star", done: false },
-      { at: LEVEL_DURATION / 2, type: "hole_mid", done: false },
-      { at: LEVEL_DURATION - 13, type: "star", done: false },
-      { at: LEVEL_DURATION - 5, type: "hole_end", done: false }
+      { at: LEVEL_DURATION - 13, type: "star", done: false }
     ];
+    // Al menos HOLE_COUNT criaturas de las profundidades por nivel,
+    // repartidas por todo el tiempo (con un poco de variación para que no
+    // se sientan mecánicas) para que sean una amenaza constante mientras
+    // se intenta tocar las motas.
+    var span = LEVEL_DURATION - 6;
+    for (var i = 0; i < HOLE_COUNT; i++){
+      var base = 3 + span * (i / (HOLE_COUNT - 1));
+      levelEvents.push({ at: clamp(base + rand(-1.2, 1.2), 2, LEVEL_DURATION - 1), type: "hole", done: false });
+    }
   }
 
   function pickMote(){
@@ -988,14 +996,16 @@
 
   function makeCreature(isHole, fromLeft, isGolden){
     var d = difficulty(level);
+    var speedMin = isHole ? 34 : 18;
+    var speedMax = isHole ? 46 : 26;
     return {
       type: isHole ? "hole" : "star",
       golden: isGolden,
       x: fromLeft ? -60 : W + 60,
       y: rand(H * 0.15, H * 0.7),
       dir: fromLeft ? 1 : -1,
-      r: isHole ? rand(24, 32) : rand(20, 27),
-      speed: rand(18, 26) * d.creatureSpeedMult * (reduceMotion ? 0.5 : 1),
+      r: isHole ? rand(22, 30) : rand(20, 27),
+      speed: rand(speedMin, speedMax) * d.creatureSpeedMult * (reduceMotion ? 0.5 : 1),
       bob: rand(0, Math.PI * 2),
       spin: rand(0, Math.PI * 2),
       spinSpeed: rand(1.2, 2.2),
@@ -1007,7 +1017,7 @@
 
   function spawnCreature(type){
     var tr = traits(level);
-    var isHole = type === "hole_mid" || type === "hole_end";
+    var isHole = type === "hole";
     var fromLeft = Math.random() < 0.5;
     var isGolden = !isHole && tr.golden && Math.random() < 0.15;
 
@@ -1015,12 +1025,6 @@
 
     if (!isHole && tr.doubleStar && Math.random() < 0.5){
       creatures.push(makeCreature(false, !fromLeft, false));
-    }
-    if (type === "hole_mid" && tr.doubleHoleMid){
-      creatures.push(makeCreature(true, !fromLeft, false));
-    }
-    if (type === "hole_end" && tr.doubleHoleEnd){
-      creatures.push(makeCreature(true, !fromLeft, false));
     }
   }
 
@@ -1204,6 +1208,7 @@
     levelValueEl.textContent = level + " / " + TOTAL_LEVELS;
     levelTimeLeft = LEVEL_DURATION;
     levelElapsed = 0;
+    midBurstDone = false;
     buildLevelEvents();
     scheduleNextCreature();
     gameState = "playing";
@@ -1570,10 +1575,11 @@
         if (!levelEvent.done && levelElapsed >= levelEvent.at){
           levelEvent.done = true;
           spawnCreature(levelEvent.type);
-          if (levelEvent.type === "hole_mid" && traits(level).midBurst){
-            for (var mb = 0; mb < 6; mb++) spawnMote();
-          }
         }
+      }
+      if (!midBurstDone && traits(level).midBurst && levelElapsed >= LEVEL_DURATION / 2){
+        midBurstDone = true;
+        for (var mb = 0; mb < 6; mb++) spawnMote();
       }
 
       levelTimeLeft -= dt;
