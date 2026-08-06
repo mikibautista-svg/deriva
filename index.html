@@ -14,6 +14,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Deriva">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1654276910782205"
+     crossorigin="anonymous"></script>
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="Deriva — jardín bioluminiscente">
@@ -667,16 +669,16 @@
   //    aquí: showInterstitialAd() ya detecta window.CrazyGames / window.PokiSDK
   //    automáticamente y los usa en vez de AdSense si están presentes.
   // ---------------------------------------------------------------------
-  var AD_CLIENT_ID = "ca-pub-XXXXXXXXXXXXXXXX"; // <-- sustituye por tu ID real de AdSense
+  // El script de adsbygoogle.js ya se carga de forma estática en el <head>
+  // (así lo pide Google para poder verificarlo), así que aquí solo
+  // preparamos la cola de anuncios y el helper adBreak — sin volver a
+  // inyectar el script, para no cargarlo dos veces.
+  var AD_CLIENT_ID = "ca-pub-1654276910782205";
   var ADSENSE_ENABLED = AD_CLIENT_ID.indexOf("XXXX") === -1;
 
   if (ADSENSE_ENABLED){
     window.adsbygoogle = window.adsbygoogle || [];
     window.adBreak = window.adBreak || function(o){ window.adsbygoogle.push(o); };
-    var adScript = document.createElement("script");
-    adScript.async = true;
-    adScript.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + AD_CLIENT_ID;
-    document.head.appendChild(adScript);
   }
 
   function showInterstitialAd(levelJustFinished, done){
